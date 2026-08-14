@@ -1,0 +1,16 @@
+# OS junk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / local tooling
+.vscode/
+.idea/
+*.swp
+
+# Local agent config
+.claude/
+
+# Logs
+*.log
