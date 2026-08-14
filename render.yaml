@@ -1,0 +1,35 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# SQL Bee is a plain static site: no build step, no server, no database.
+# SQLite runs in the browser via WebAssembly, so the whole app is just files.
+services:
+  - type: web
+    name: sql-bee
+    runtime: static
+    # Nothing to compile — the repo root is already the deployable site.
+    buildCommand: "echo 'No build step: static site served as-is'"
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
+
+    headers:
+      # sql.js streams the .wasm binary; long-cache the vendored libraries,
+      # which are versioned by content and never change in place.
+      - path: /vendor/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+      # App files are cache-busted with ?v=N query strings, so allow caching
+      # but let the browser revalidate.
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
