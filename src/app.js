@@ -1,5 +1,5 @@
 import { SCHEMA_SQL } from '../data/schema.js';
-import { DIALECTS, DIALECT_ORDER, DIFFERENCES, relevantDifferences } from '../data/dialects.js';
+import { DIALECTS, DIALECT_ORDER, REFERENCE_ORDER, DIFFERENCES, relevantDifferences } from '../data/dialects.js';
 import { translate } from './translate.js';
 import { QUESTIONS, TOPICS, ALT_SOLUTIONS } from '../data/questions.js';
 
@@ -10,9 +10,6 @@ const THEME_KEY = 'sqlPracticeHub.theme.v1';
 const DIALECT_KEY = 'sqlPracticeHub.dialect.v1';
 
 let db = null;
-// Set once a real PostgreSQL engine (PGlite) is available in the page. Until then
-// the Postgres dialect is translated onto SQLite and the UI says so.
-let pgReady = false;
 let editor = null;
 let currentQuestion = QUESTIONS[0];
 let lastUserResult = null;
@@ -52,10 +49,10 @@ function runSql(sql) {
 /* ------------------------------------------------------------- dialects */
 let dialect = 'sqlite';
 
-// Engines that can actually execute in this browser session.
+// SQLite is the only engine that can execute in a browser tab, so every dialect
+// ultimately runs there.
 function engineFor(dialectId) {
-  const d = DIALECTS[dialectId];
-  return d.engine === 'postgres' && !pgReady ? 'sqlite' : d.engine;
+  return DIALECTS[dialectId].engine;
 }
 
 // Runs the user's query in the selected dialect, translating first when that
@@ -81,8 +78,7 @@ function renderDialectSelect() {
 // engine: 'sqlite' because that is what executes them, which is exactly why
 // they are NOT native.
 function nativelyRuns(dialectId) {
-  const d = DIALECTS[dialectId];
-  return d.engine === 'postgres' ? pgReady : d.runs;
+  return DIALECTS[dialectId].runs;
 }
 
 function updateEngineBadge() {
@@ -427,7 +423,7 @@ function renderDialectsTab() {
     <div class="dx">
       <div class="dx-topic">${escapeHtml(d.topic)}</div>
       <div class="dx-grid">
-        ${DIALECT_ORDER.map(id => `
+        ${REFERENCE_ORDER.map(id => `
           <div class="dx-cell${id === dialect ? ' current' : ''}">
             <div class="dx-name">${escapeHtml(DIALECTS[id].short)}</div>
             <pre>${escapeHtml(d[id])}</pre>
@@ -436,12 +432,14 @@ function renderDialectsTab() {
       <div class="dx-gotcha"><strong>Watch out:</strong> ${escapeHtml(d.gotcha)}</div>
     </div>`;
 
-  const engineNote = DIALECT_ORDER.map(id => {
+  const engineNote = REFERENCE_ORDER.map(id => {
     const d = DIALECTS[id];
-    return `<li><strong>${escapeHtml(d.label)}</strong> — ${nativelyRuns(id)
+    const tag = nativelyRuns(id)
       ? '<span class="ok-tag">executes for real</span>'
-      : `<span class="warn-tag">translated onto ${escapeHtml(DIALECTS[engineFor(id)].short)}</span>`
-    } <span class="dx-note">${escapeHtml(d.note)}</span></li>`;
+      : d.referenceOnly
+        ? '<span class="ref-tag">reference only</span>'
+        : `<span class="warn-tag">you can write it — runs on ${escapeHtml(DIALECTS[engineFor(id)].short)}</span>`;
+    return `<li><strong>${escapeHtml(d.label)}</strong> — ${tag} <span class="dx-note">${escapeHtml(d.note)}</span></li>`;
   }).join('');
 
   $('qtabBody').innerHTML =

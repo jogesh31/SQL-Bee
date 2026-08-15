@@ -20,7 +20,7 @@ Everything here is written from scratch and self-contained:
   derived from the question itself, so they are always accurate.
 - **Visual identity** is our own: translucent panels floating over a soft gradient canvas,
   a numbered index chip with metadata chips under the title, and the tab set
-  Brief / Walkthrough / Other ways / History.
+  Brief / Walkthrough / Other ways / Dialects / History.
 
 Split-pane editors, Run and Check buttons, difficulty labels and result-set grading are
 functional conventions common to every coding-practice site; they are not anyone's property.
@@ -53,6 +53,37 @@ The two action buttons never share a colour in either theme, so "execute" and "g
 visually distinct. All body, label and button text is checked against WCAG AA (4.5:1) contrast
 on both canvases.
 
+### SQL dialects
+
+Pick the dialect you are practising from the dropdown above the editor. **The badge next
+to it always says which engine actually executed your query** — no pretending.
+
+| Dialect | Status | Why |
+|---|---|---|
+| **SQLite** | executes for real | Compiled to WebAssembly, running in the tab |
+| **MySQL** | you write it, SQLite runs it | No browser build of MySQL exists — its [WebAssembly support](https://blogs.oracle.com/mysql/webassembly-integration-for-nextgen-data-apps-in-mysql) is for UDFs running *inside* the server |
+| **SQL Server (T-SQL)** | you write it, SQLite runs it | Closed-source; Microsoft ships no browser build |
+| **PostgreSQL** | reference only | Included in the comparison table because most analyst interviews use it |
+
+When you write MySQL or T-SQL, a bounded set of idioms is rewritten before execution —
+`SELECT TOP 5` → `LIMIT 5`, `ISNULL` → `COALESCE`, `LEN` → `LENGTH`, `[col]` and `` `col` ``
+→ `"col"`, `YEAR(d)` → `STRFTIME`, `DATEDIFF` → `JULIANDAY` arithmetic, MySQL's
+`LIMIT offset, count` → `LIMIT count OFFSET offset`, and more. **Every rewrite is listed
+above your results** with the reason, so the difference is taught rather than hidden.
+
+Ambiguous constructs are refused rather than guessed: T-SQL's `+` for string concatenation
+is indistinguishable from numeric addition without type information, so it produces a
+warning instead of a silent rewrite.
+
+The **Dialects** tab shows the syntax differences that apply to the current question first,
+then a full reference covering row limiting, paging, NULL handling, concatenation, date
+functions, conditional aggregation, identifier quoting, string aggregation, integer
+division and case-sensitivity — each with the gotcha that trips people up.
+
+Rewriting can never change what counts as correct: grading always runs the reference
+solution through the raw SQLite engine, and the self-test asserts that all 60 solutions
+produce identical results after being translated from every dialect.
+
 ### Layout
 
 The question fills the left pane; the editor and output fill the right pane.
@@ -63,6 +94,7 @@ Left pane tabs:
   example output your query must reproduce.
 - **Walkthrough** — the reference solution with an explanation, loadable into the editor.
 - **Other ways** — other genuinely different queries that are also accepted.
+- **Dialects** — how this question's SQL differs across SQLite, PostgreSQL, MySQL and T-SQL.
 - **History** — your local attempt history for this question, each reloadable.
 
 Drag the divider between the panes to resize them.
@@ -87,7 +119,7 @@ Where a question has genuinely different solutions, the **Other ways** tab lists
 
 `sqlHubSelfTest()` in the browser console re-runs the whole grading harness: every reference
 solution and every listed alternative approach must grade Correct, and obviously wrong queries
-must be rejected. It currently runs **157 checks, all passing**. Run it after editing questions.
+must be rejected. It currently runs **358 checks, all passing**. Run it after editing questions.
 
 Progress, per-question drafts and submission history are saved to `localStorage`.
 

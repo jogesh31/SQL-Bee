@@ -20,9 +20,10 @@ export const DIALECTS = {
     id: 'postgres',
     label: 'PostgreSQL',
     short: 'Postgres',
-    runs: true,
-    engine: 'postgres',
-    note: 'Runs for real — PostgreSQL compiled to WebAssembly, executing in this tab.'
+    runs: false,
+    engine: 'sqlite',
+    referenceOnly: true,
+    note: 'Shown in the comparison table for reference — Postgres is the dialect most analyst interviews use, so its syntax is worth knowing.'
   },
   mysql: {
     id: 'mysql',
@@ -42,7 +43,13 @@ export const DIALECTS = {
   }
 };
 
-export const DIALECT_ORDER = ['sqlite', 'postgres', 'mysql', 'tsql'];
+/* Dialects you can select and write queries in. */
+export const DIALECT_ORDER = ['sqlite', 'mysql', 'tsql'];
+
+/* Dialects shown in the side-by-side syntax comparison. Postgres appears here
+   even though it is not selectable: it is the dialect most analyst interviews
+   are conducted in, so knowing its syntax is worth more than the column costs. */
+export const REFERENCE_ORDER = ['sqlite', 'postgres', 'mysql', 'tsql'];
 
 /* Syntax differences worth knowing for a data-analyst interview.
  * `detect` marks the rows relevant to a given question's solution. */
