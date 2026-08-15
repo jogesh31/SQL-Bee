@@ -1,12 +1,18 @@
 import { SCHEMA_SQL } from '../data/schema.js';
+import { DIALECTS, DIALECT_ORDER, DIFFERENCES, relevantDifferences } from '../data/dialects.js';
+import { translate } from './translate.js';
 import { QUESTIONS, TOPICS, ALT_SOLUTIONS } from '../data/questions.js';
 
 const STORAGE_KEY = 'sqlPracticeHub.progress.v1';
 const DRAFT_KEY = 'sqlPracticeHub.drafts.v1';
 const SUBS_KEY = 'sqlPracticeHub.submissions.v1';
 const THEME_KEY = 'sqlPracticeHub.theme.v1';
+const DIALECT_KEY = 'sqlPracticeHub.dialect.v1';
 
 let db = null;
+// Set once a real PostgreSQL engine (PGlite) is available in the page. Until then
+// the Postgres dialect is translated onto SQLite and the UI says so.
+let pgReady = false;
 let editor = null;
 let currentQuestion = QUESTIONS[0];
 let lastUserResult = null;
@@ -34,11 +40,58 @@ async function initDb() {
   db.run(SCHEMA_SQL);
 }
 
+// Raw execution against the SQLite engine. Reference solutions and grading always
+// go through this, so a dialect choice can never change what counts as correct.
 function runSql(sql) {
   const results = db.exec(sql);
   if (!results.length) return { columns: [], rows: [], empty: true };
   const last = results[results.length - 1];
   return { columns: last.columns, rows: last.values, empty: false };
+}
+
+/* ------------------------------------------------------------- dialects */
+let dialect = 'sqlite';
+
+// Engines that can actually execute in this browser session.
+function engineFor(dialectId) {
+  const d = DIALECTS[dialectId];
+  return d.engine === 'postgres' && !pgReady ? 'sqlite' : d.engine;
+}
+
+// Runs the user's query in the selected dialect, translating first when that
+// dialect has no browser engine. Returns the result plus what was rewritten.
+function runUserSql(sql) {
+  const target = engineFor(dialect);
+  const t = translate(sql, dialect, target);
+  const result = runSql(t.sql);
+  return { result, applied: t.applied, warnings: t.warnings, executedSql: t.sql, engine: target };
+}
+
+function renderDialectSelect() {
+  const sel = $('dialectSelect');
+  sel.innerHTML = DIALECT_ORDER.map(id => {
+    const d = DIALECTS[id];
+    return `<option value="${id}">${escapeHtml(d.label)}${nativelyRuns(id) ? '' : ' — translated'}</option>`;
+  }).join('');
+  sel.value = dialect;
+  updateEngineBadge();
+}
+
+// `runs` — not the engine field — decides "native". MySQL and T-SQL carry
+// engine: 'sqlite' because that is what executes them, which is exactly why
+// they are NOT native.
+function nativelyRuns(dialectId) {
+  const d = DIALECTS[dialectId];
+  return d.engine === 'postgres' ? pgReady : d.runs;
+}
+
+function updateEngineBadge() {
+  const d = DIALECTS[dialect];
+  const badge = $('engineBadge');
+  const native = nativelyRuns(dialect);
+  badge.textContent = native ? 'runs natively' : `runs on ${DIALECTS[engineFor(dialect)].short}`;
+  badge.className = 'engine-badge ' + (native ? 'native' : 'translated');
+  badge.title = d.note;
 }
 
 /* ------------------------------------------------------------- grading */
@@ -362,12 +415,56 @@ function renderSubmissionsTab() {
   });
 }
 
+/* Dialects tab: the differences that actually apply to THIS question's solution
+ * first, then the full reference table. Nothing here is a generated query — each
+ * row is a hand-checked syntax fact, so it cannot quietly be wrong. */
+function renderDialectsTab() {
+  const q = currentQuestion;
+  const hits = relevantDifferences(q.solution);
+  const rest = DIFFERENCES.filter(d => !hits.includes(d));
+
+  const card = d => `
+    <div class="dx">
+      <div class="dx-topic">${escapeHtml(d.topic)}</div>
+      <div class="dx-grid">
+        ${DIALECT_ORDER.map(id => `
+          <div class="dx-cell${id === dialect ? ' current' : ''}">
+            <div class="dx-name">${escapeHtml(DIALECTS[id].short)}</div>
+            <pre>${escapeHtml(d[id])}</pre>
+          </div>`).join('')}
+      </div>
+      <div class="dx-gotcha"><strong>Watch out:</strong> ${escapeHtml(d.gotcha)}</div>
+    </div>`;
+
+  const engineNote = DIALECT_ORDER.map(id => {
+    const d = DIALECTS[id];
+    return `<li><strong>${escapeHtml(d.label)}</strong> — ${nativelyRuns(id)
+      ? '<span class="ok-tag">executes for real</span>'
+      : `<span class="warn-tag">translated onto ${escapeHtml(DIALECTS[engineFor(id)].short)}</span>`
+    } <span class="dx-note">${escapeHtml(d.note)}</span></li>`;
+  }).join('');
+
+  $('qtabBody').innerHTML =
+    `<p class="alts-lede">How this question's SQL changes between engines. Interviews are
+      usually conducted in one specific dialect, so the differences below are worth knowing
+      even when the logic is identical.</p>
+     <div class="dx-engines"><div class="q-section-title">Which engines actually run here</div>
+       <ul class="dx-engine-list">${engineNote}</ul></div>` +
+    (hits.length
+      ? `<div class="q-section-title">Relevant to this question (${hits.length})</div>${hits.map(card).join('')}`
+      : '<div class="q-section-title">This question uses no dialect-specific syntax — the same query works on all four.</div>') +
+    (rest.length
+      ? `<div class="q-section-title">General reference</div>${rest.map(card).join('')}`
+      : '');
+}
+
 function syncQTabs() {
   document.querySelectorAll('.qtab').forEach(t => t.classList.toggle('active', t.dataset.qtab === activeQTab));
   $('qtabBody').scrollTop = 0;
   if (activeQTab === 'question') renderQuestionTab();
   else if (activeQTab === 'solution') renderSolutionTab();
   else if (activeQTab === 'approaches') renderApproachesTab();
+  else if (activeQTab === 'dialects') renderDialectsTab();
   else renderSubmissionsTab();
 }
 
@@ -424,17 +521,18 @@ function doRun(silent) {
   const sql = editor.getValue().trim();
   if (!sql) { toast('Write a query first.', 'err'); return null; }
   try {
-    const result = runSql(sql);
-    lastUserResult = result;
+    const run = runUserSql(sql);
+    lastUserResult = run.result;
     activeTab = 'result';
     syncTabs();
-    renderTable(result, $('resultBody'));
+    renderTable(run.result, $('resultBody'));
+    showTranslationNotice(run);
     if (!silent) {
-      const n = result.empty ? 0 : result.rows.length;
+      const n = run.result.empty ? 0 : run.result.rows.length;
       $('resultStatus').textContent = `Ran successfully — ${n} row${n === 1 ? '' : 's'} (not checked)`;
       $('resultStatus').className = 'result-status neutral';
     }
-    return result;
+    return run.result;
   } catch (err) {
     lastUserResult = null;
     activeTab = 'result';
@@ -444,6 +542,24 @@ function doRun(silent) {
     $('resultStatus').className = 'result-status err';
     return null;
   }
+}
+
+// Shows exactly what was rewritten, so a translated dialect teaches the difference
+// rather than silently correcting the query.
+function showTranslationNotice(run) {
+  if (!run.applied.length && !run.warnings.length) return;
+  const parts = [];
+  if (run.applied.length) {
+    parts.push(
+      `<div class="xlate-head">Rewritten to run on ${escapeHtml(DIALECTS[run.engine].short)} ` +
+      `(${run.applied.length} change${run.applied.length === 1 ? '' : 's'}):</div>` +
+      '<ul class="xlate-list">' +
+      run.applied.map(a =>
+        `<li><code>${escapeHtml(a.label)}</code><span>${escapeHtml(a.why)}</span></li>`).join('') +
+      '</ul>');
+  }
+  for (const w of run.warnings) parts.push(`<div class="xlate-warn">${escapeHtml(w)}</div>`);
+  $('resultBody').insertAdjacentHTML('afterbegin', `<div class="xlate-box">${parts.join('')}</div>`);
 }
 
 function doSubmit() {
@@ -634,6 +750,20 @@ async function main() {
   });
   $('btnPrev').addEventListener('click', () => step(-1));
   $('btnNext').addEventListener('click', () => step(1));
+  try { dialect = localStorage.getItem(DIALECT_KEY) || 'sqlite'; } catch {}
+  if (!DIALECTS[dialect]) dialect = 'sqlite';
+  renderDialectSelect();
+  $('dialectSelect').addEventListener('change', e => {
+    dialect = e.target.value;
+    try { localStorage.setItem(DIALECT_KEY, dialect); } catch {}
+    updateEngineBadge();
+    if (activeQTab === 'dialects') syncQTabs();
+    const d = DIALECTS[dialect];
+    toast(nativelyRuns(dialect)
+      ? `${d.label}: queries execute natively.`
+      : `${d.label}: idioms are rewritten to run on ${DIALECTS[engineFor(dialect)].short}.`);
+  });
+
   $('btnQuestions').addEventListener('click', toggleQuestions);
   $('btnCloseQuestions').addEventListener('click', closeQuestions);
 
@@ -719,7 +849,54 @@ window.sqlHubSelfTest = function () {
         failures.push(`Q${q.id} accepted an obviously wrong query`);
       }
     } catch {}
+
+    // A dialect choice must never change what counts as correct. Every reference
+    // solution is portable SQL, so translating it from any dialect must still
+    // produce the identical result set.
+    for (const d of DIALECT_ORDER) {
+      checks++;
+      try {
+        const t = translate(q.solution, d, 'sqlite');
+        if (!compareResults(runSql(t.sql), expected, q.orderMatters).pass) {
+          failures.push(`Q${q.id} changed meaning under ${d} translation (${t.applied.map(a => a.label).join('; ') || 'no rewrites'})`);
+        }
+      } catch (e) {
+        failures.push(`Q${q.id} failed to run after ${d} translation: ${e.message}`);
+      }
+    }
   }
+
+  // Translation regression cases: each must rewrite exactly as stated, and string
+  // literals must never be touched.
+  const XLATE_CASES = [
+    { d: 'tsql', in: 'SELECT TOP 5 first_name FROM employees;', want: /LIMIT 5/i, rules: 1 },
+    { d: 'tsql', in: 'SELECT DATEDIFF(day, hire_date, GETDATE()) AS d FROM employees;', want: /JULIANDAY\(DATETIME/i, rules: 2 },
+    { d: 'mysql', in: "SELECT DATEDIFF(hire_date, '2020-01-01') AS d FROM employees;", want: /JULIANDAY\(hire_date\) - JULIANDAY\('2020-01-01'\)/i, rules: 1 },
+    { d: 'mysql', in: "SELECT GROUP_CONCAT(first_name SEPARATOR ', ') AS n FROM employees;", want: /GROUP_CONCAT\(first_name, ', '\)/i, rules: 1 },
+    { d: 'mysql', in: 'SELECT * FROM employees LIMIT 10, 5;', want: /LIMIT 5 OFFSET 10/i, rules: 1 },
+    { d: 'tsql', in: 'SELECT ISNULL(bonus_pct, 0) AS b FROM employees;', want: /COALESCE/i, rules: 1 },
+    { d: 'tsql', in: 'SELECT LEN(city) AS n FROM employees;', want: /LENGTH\(city\)/i, rules: 1 },
+    { d: 'tsql', in: 'SELECT [first_name] FROM [employees];', want: /"first_name"/, rules: 1 },
+    { d: 'mysql', in: 'SELECT `first_name` FROM `employees`;', want: /"first_name"/, rules: 1 },
+    // literals must survive verbatim
+    { d: 'tsql', in: "SELECT * FROM employees WHERE city = 'Top of LEN [x]';", want: /'Top of LEN \[x\]'/, rules: 0 }
+  ];
+  for (const c of XLATE_CASES) {
+    checks++;
+    const r = translate(c.in, c.d, 'sqlite');
+    if (!c.want.test(r.sql)) failures.push(`translate(${c.d}) produced "${r.sql}" — expected to match ${c.want}`);
+    if (r.applied.length !== c.rules) failures.push(`translate(${c.d}) applied ${r.applied.length} rules, expected ${c.rules}: ${c.in}`);
+    // every rewritten query must still be executable
+    checks++;
+    try { runSql(r.sql); } catch (e) { failures.push(`translated SQL did not run: ${r.sql} — ${e.message}`); }
+  }
+
+  // The + concat ambiguity must warn rather than silently rewrite.
+  checks++;
+  const plus = translate("SELECT first_name + ' ' + last_name FROM employees;", 'tsql', 'sqlite');
+  if (!plus.warnings.length) failures.push('T-SQL + concatenation should warn, not rewrite');
+  if (plus.applied.length) failures.push('T-SQL + concatenation must not be rewritten');
+
   return { checks, failures, ok: failures.length === 0 };
 };
 

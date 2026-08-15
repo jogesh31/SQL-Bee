@@ -6,7 +6,7 @@
 <title>SQL Bee — Learn SQL &amp; Crack Interviews</title>
 <link rel="stylesheet" href="vendor/codemirror.min.css" />
 <link rel="stylesheet" href="vendor/show-hint.min.css" />
-<link rel="stylesheet" href="styles/app.css?v=8" />
+<link rel="stylesheet" href="styles/app.css?v=9" />
 </head>
 <body>
 <div id="boot" class="boot">
@@ -94,6 +94,7 @@
       <button class="qtab active" data-qtab="question">Brief</button>
       <button class="qtab" data-qtab="solution">Walkthrough</button>
       <button class="qtab" data-qtab="approaches">Other ways</button>
+      <button class="qtab" data-qtab="dialects">Dialects</button>
       <button class="qtab" data-qtab="submissions">History</button>
     </nav>
 
@@ -106,7 +107,8 @@
   <section class="pane pane-right">
     <div class="editor-head">
       <span class="editor-label">Input</span>
-      <span class="dialect" id="dialect" title="Queries run on SQLite compiled to WebAssembly, entirely in your browser">SQLite (in-browser)</span>
+      <select class="dialect-select" id="dialectSelect" title="Choose the SQL dialect you are practising"></select>
+      <span class="engine-badge" id="engineBadge"></span>
       <div class="editor-head-actions">
         <button class="btn btn-ghost btn-sm" id="btnClear">Clear</button>
         <button class="btn btn-ghost btn-sm" id="btnFormat">Reset</button>
@@ -171,6 +173,6 @@
 <script src="vendor/sql-mode.min.js"></script>
 <script src="vendor/show-hint.min.js"></script>
 <script src="vendor/sql-hint.min.js"></script>
-<script type="module" src="src/app.js?v=8"></script>
+<script type="module" src="src/app.js?v=9"></script>
 </body>
 </html>
