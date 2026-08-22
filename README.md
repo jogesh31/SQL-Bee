@@ -1,11 +1,14 @@
 # SQL Bee
 
-A browser-based SQL practice site — 85 interview-style questions with a real SQL engine,
+A browser-based SQL practice site — 30 curated interview questions with a real SQL engine,
 instant execution and automatic answer checking. Runs entirely offline on your machine.
 
-25 of them are an **advanced set** aimed at senior analyst and consulting screens
-(PwC, EY, Deloitte, Accenture, Genpact, Capgemini, EXL) and product-company rounds:
-gaps and islands, streaks, window frames, cohort retention, relational division and recursion.
+The set is deliberately tight rather than exhaustive: 5 core fundamentals (multi-table
+joins with aggregation, HAVING, window ranking, CTEs, date-trend aggregation) followed by
+25 advanced, senior-analyst-level patterns — gaps and islands, streaks, window frames,
+cohort retention, relational division, sessionization, recursion and more — with **every
+question covering a different technique**, so nothing is practiced twice. Aimed at the
+round asked at PwC, EY, Deloitte, Accenture, Genpact, Capgemini, EXL, Microsoft and Google.
 
 Made by [Jogesh Kumar Sharma](https://www.linkedin.com/in/jogeshkumarsharma).
 
@@ -85,7 +88,7 @@ functions, conditional aggregation, identifier quoting, string aggregation, inte
 division and case-sensitivity — each with the gotcha that trips people up.
 
 Rewriting can never change what counts as correct: grading always runs the reference
-solution through the raw SQLite engine, and the self-test asserts that all 60 solutions
+solution through the raw SQLite engine, and the self-test asserts that all 30 solutions
 produce identical results after being translated from every dialect.
 
 ### Layout
@@ -123,7 +126,7 @@ Where a question has genuinely different solutions, the **Other ways** tab lists
 
 `sqlHubSelfTest()` in the browser console re-runs the whole grading harness: every reference
 solution and every listed alternative approach must grade Correct, and obviously wrong queries
-must be rejected. It currently runs **496 checks, all passing**. Run it after editing questions.
+must be rejected. It currently runs **185 checks, all passing**. Run it after editing questions.
 
 Progress, per-question drafts and submission history are saved to `localStorage`.
 
@@ -133,7 +136,7 @@ than a global schema panel and keeps the reference next to the prompt.
 
 ## Content
 
-85 questions across four datasets:
+30 questions across four datasets:
 
 | Dataset | Tables | Focus |
 |---|---|---|
@@ -142,38 +145,52 @@ than a global schema panel and keeps the reference next to the prompt.
 | Product Analytics | `users`, `events` | DAU, retention, referral chains |
 | Interview Drills | `seats`, `logins`, `daily_metrics`, `subscription_log`, `messages`, `exam_scores`, `invoices` | gaps and islands, streaks, sessionization, cohorts, division, invoice-gap audits |
 
-### The advanced set (questions 61-85)
+### Questions 1-5: fundamentals
 
-Every one is rated Hard and carries its **own distinct topic label** — no pattern is
-covered twice, so working through all 25 means meeting 25 different techniques:
+The warm-up — bread-and-butter techniques every SQL round still opens with, each with a
+distinct topic so they don't overlap the advanced set:
 
 | # | Question | Pattern |
 |---|---|---|
-| 61 | Blocks of three or more free seats | Gaps & Islands |
-| 62 | Longest daily login streak | Streaks (date arithmetic) |
-| 63 | Cities rising three days straight | Consecutive Trends |
-| 64 | Collapse a status log into ranges | Range Compaction |
-| 65 | Third highest distinct salary, safely | Ranking + NULL edge case |
-| 66 | Median salary per department | Median without PERCENTILE_CONT |
-| 67 | Top revenue quartile | NTILE buckets |
-| 68 | Paid more than every other dept average | Correlated subquery |
-| 69 | Seven-day rolling total | Rolling window frame |
-| 70 | Days that spiked above baseline | Frame excluding current row |
-| 71 | Full rep-by-region grid | CROSS JOIN + LEFT JOIN |
-| 72 | Three-day retention by cohort | Cohort analysis |
-| 73 | Users who went quiet | Anti-join |
-| 74 | Products bought together | Basket analysis |
-| 75 | Conversations that went both ways | Graph pairs |
-| 76 | Identical marks in two subjects | Self join |
-| 77 | Students sitting every subject | Relational division |
-| 78 | Web-only, mobile-only or both | Conditional aggregation |
-| 79 | Favourite category per customer | Arg-max with tie-break |
-| 80 | Second most recent login | Nth value + NULL edge case |
-| 81 | Gap between first and second order | Time between events |
-| 82 | Split activity into sessions | Sessionization |
-| 83 | Missing invoice numbers | Gap detection |
-| 84 | Depth of the reporting chain | Recursive CTE |
-| 85 | New versus returning orders | Cross-grain aggregation |
+| 1 | Departments with more than 3 people | GROUP BY + HAVING |
+| 2 | Sales rep performance | Multi-table JOIN + aggregation |
+| 3 | Monthly revenue trend | Date-truncated aggregation |
+| 4 | Rank within department | Window ranking (RANK/DENSE_RANK) |
+| 5 | Multi-step CTE: best month per region | Chained CTEs |
+
+### Questions 6-30: advanced set
+
+Every one is rated Hard and carries its **own distinct topic label** — no pattern is
+covered twice, so working through all 25 means meeting 25 different techniques used in
+senior analyst and consulting screens:
+
+| # | Question | Pattern |
+|---|---|---|
+| 6 | Blocks of three or more free seats | Gaps & Islands |
+| 7 | Longest daily login streak | Streaks (date arithmetic) |
+| 8 | Cities rising three days straight | Consecutive Trends |
+| 9 | Collapse a status log into ranges | Range Compaction |
+| 10 | Third highest distinct salary, safely | Ranking + NULL edge case |
+| 11 | Median salary per department | Median without PERCENTILE_CONT |
+| 12 | Top revenue quartile | NTILE buckets |
+| 13 | Paid more than every other dept average | Correlated subquery |
+| 14 | Seven-day rolling total | Rolling window frame |
+| 15 | Days that spiked above baseline | Frame excluding current row |
+| 16 | Full rep-by-region grid | CROSS JOIN + LEFT JOIN |
+| 17 | Three-day retention by cohort | Cohort analysis |
+| 18 | Users who went quiet | Anti-join |
+| 19 | Products bought together | Basket analysis |
+| 20 | Conversations that went both ways | Graph pairs |
+| 21 | Identical marks in two subjects | Self join |
+| 22 | Students sitting every subject | Relational division |
+| 23 | Web-only, mobile-only or both | Conditional aggregation |
+| 24 | Favourite category per customer | Arg-max with tie-break |
+| 25 | Second most recent login | Nth value + NULL edge case |
+| 26 | Gap between first and second order | Time between events |
+| 27 | Split activity into sessions | Sessionization |
+| 28 | Missing invoice numbers | Gap detection |
+| 29 | Depth of the reporting chain | Recursive CTE |
+| 30 | New versus returning orders | Cross-grain aggregation |
 
 The questions are original text written against our own dataset. Where a pattern is a
 well-known interview classic, only the *technique* is shared — the scenario, wording,
