@@ -811,6 +811,10 @@ function buildHintTables() {
 
 // Self-test: asserts every reference solution AND every listed alternative approach
 // grades as Correct, and that a deliberately wrong query grades as Incorrect.
+// Author aid — run any SQL from the console and get {columns, rows} back.
+// Handy when writing a new question and checking what its solution returns.
+window.sqlHubRun = sql => runSql(sql);
+
 // Run from the browser console:  sqlHubSelfTest()
 window.sqlHubSelfTest = function () {
   const failures = [];

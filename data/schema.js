@@ -314,6 +314,134 @@ INSERT INTO salaries_history VALUES
  (8,21,'2019-09-09',95000),(9,21,'2021-04-01',110000),(10,21,'2023-04-01',126000),
  (11,23,'2022-02-14',72000),(12,23,'2023-04-01',85000),
  (13,9,'2018-06-11',65000),(14,9,'2020-04-01',76000),(15,9,'2022-04-01',88000);
+/* ============================================================
+   Interview drill tables — shaped for advanced patterns:
+   gaps and islands, sessionization, cohort retention,
+   relational division and audit-style gap detection.
+   ============================================================ */
+
+DROP TABLE IF EXISTS seats;
+CREATE TABLE seats (
+  seat_id INTEGER PRIMARY KEY,
+  hall    TEXT NOT NULL,
+  seat_no INTEGER NOT NULL,
+  is_free INTEGER NOT NULL
+);
+INSERT INTO seats VALUES
+ (1,'A',1,1),(2,'A',2,1),(3,'A',3,1),(4,'A',4,0),(5,'A',5,1),(6,'A',6,1),
+ (7,'A',7,0),(8,'A',8,1),(9,'A',9,1),(10,'A',10,1),(11,'A',11,1),(12,'A',12,0),
+ (13,'B',1,0),(14,'B',2,1),(15,'B',3,1),(16,'B',4,1),(17,'B',5,1),(18,'B',6,1),
+ (19,'B',7,0),(20,'B',8,1),(21,'B',9,0),(22,'B',10,1);
+
+DROP TABLE IF EXISTS logins;
+CREATE TABLE logins (
+  login_id INTEGER PRIMARY KEY,
+  user_id  INTEGER NOT NULL,
+  login_ts TEXT NOT NULL,
+  platform TEXT NOT NULL
+);
+INSERT INTO logins VALUES
+ (1,1,'2023-06-01 09:00:00','web'),(2,1,'2023-06-01 09:20:00','web'),(3,1,'2023-06-01 11:05:00','web'),
+ (4,1,'2023-06-02 10:00:00','web'),(5,1,'2023-06-03 10:30:00','web'),(6,1,'2023-06-04 08:15:00','web'),
+ (7,2,'2023-06-01 12:00:00','mobile'),(8,2,'2023-06-03 12:00:00','mobile'),(9,2,'2023-06-05 12:00:00','mobile'),
+ (10,3,'2023-06-02 08:00:00','web'),(11,3,'2023-06-02 08:25:00','web'),(12,3,'2023-06-02 09:30:00','web'),
+ (13,3,'2023-06-03 08:00:00','mobile'),(14,3,'2023-06-04 08:00:00','web'),
+ (15,3,'2023-06-05 08:00:00','web'),(16,3,'2023-06-06 08:00:00','web'),
+ (17,4,'2023-06-01 07:30:00','mobile'),
+ (18,5,'2023-06-05 20:00:00','web'),(19,5,'2023-06-06 20:00:00','web'),(20,5,'2023-06-07 20:00:00','web'),
+ (21,7,'2023-06-01 06:00:00','web'),(22,7,'2023-06-02 06:00:00','web'),
+ (23,7,'2023-06-10 06:00:00','mobile'),(24,7,'2023-06-11 06:00:00','mobile'),
+ (25,7,'2023-06-12 06:00:00','mobile'),(26,7,'2023-06-13 06:00:00','mobile'),
+ (27,9,'2023-06-03 15:00:00','mobile'),(28,9,'2023-06-04 15:00:00','mobile'),
+ (29,11,'2023-06-08 11:00:00','web'),(30,11,'2023-06-09 11:00:00','web'),(31,11,'2023-06-10 11:00:00','web'),
+ (32,11,'2023-06-11 11:00:00','web'),(33,11,'2023-06-12 11:00:00','web');
+
+DROP TABLE IF EXISTS daily_metrics;
+CREATE TABLE daily_metrics (
+  metric_id    INTEGER PRIMARY KEY,
+  city         TEXT NOT NULL,
+  metric_date  TEXT NOT NULL,
+  active_users INTEGER NOT NULL
+);
+INSERT INTO daily_metrics VALUES
+ (1,'Mumbai','2023-06-01',100),(2,'Mumbai','2023-06-02',120),(3,'Mumbai','2023-06-03',135),
+ (4,'Mumbai','2023-06-04',150),(5,'Mumbai','2023-06-05',140),(6,'Mumbai','2023-06-06',155),
+ (7,'Mumbai','2023-06-07',160),(8,'Mumbai','2023-06-08',158),(9,'Mumbai','2023-06-09',170),
+ (10,'Mumbai','2023-06-10',182),
+ (11,'Delhi','2023-06-01',80),(12,'Delhi','2023-06-02',75),(13,'Delhi','2023-06-03',90),
+ (14,'Delhi','2023-06-04',95),(15,'Delhi','2023-06-05',99),(16,'Delhi','2023-06-06',105),
+ (17,'Delhi','2023-06-07',102),(18,'Delhi','2023-06-08',110),(19,'Delhi','2023-06-09',115),
+ (20,'Delhi','2023-06-10',120),
+ (21,'Pune','2023-06-01',60),(22,'Pune','2023-06-02',65),(23,'Pune','2023-06-03',64),
+ (24,'Pune','2023-06-04',70),(25,'Pune','2023-06-05',69),(26,'Pune','2023-06-06',72),
+ (27,'Pune','2023-06-07',71),(28,'Pune','2023-06-08',75),(29,'Pune','2023-06-09',74),
+ (30,'Pune','2023-06-10',78),
+ (31,'Chennai','2023-06-01',200),(32,'Chennai','2023-06-02',210),(33,'Chennai','2023-06-03',220),
+ (34,'Chennai','2023-06-04',230),(35,'Chennai','2023-06-05',240),(36,'Chennai','2023-06-06',250),
+ (37,'Chennai','2023-06-07',245),(38,'Chennai','2023-06-08',255),(39,'Chennai','2023-06-09',265),
+ (40,'Chennai','2023-06-10',275);
+
+DROP TABLE IF EXISTS subscription_log;
+CREATE TABLE subscription_log (
+  log_id      INTEGER PRIMARY KEY,
+  account_id  INTEGER NOT NULL,
+  status      TEXT NOT NULL,
+  status_date TEXT NOT NULL
+);
+INSERT INTO subscription_log VALUES
+ (1,1,'active','2023-01-01'),(2,1,'active','2023-02-01'),(3,1,'paused','2023-03-01'),
+ (4,1,'paused','2023-04-01'),(5,1,'active','2023-05-01'),
+ (6,2,'trial','2023-01-15'),(7,2,'active','2023-02-15'),(8,2,'active','2023-03-15'),
+ (9,2,'cancelled','2023-04-15'),
+ (10,3,'active','2023-02-10'),(11,3,'paused','2023-03-10'),(12,3,'active','2023-04-10'),
+ (13,3,'active','2023-05-10'),(14,3,'active','2023-06-10');
+
+DROP TABLE IF EXISTS messages;
+CREATE TABLE messages (
+  msg_id      INTEGER PRIMARY KEY,
+  sender_id   INTEGER NOT NULL,
+  receiver_id INTEGER NOT NULL,
+  sent_date   TEXT NOT NULL
+);
+INSERT INTO messages VALUES
+ (1,1,2,'2023-07-01'),(2,2,1,'2023-07-01'),(3,1,2,'2023-07-03'),
+ (4,1,3,'2023-07-02'),(5,3,1,'2023-07-04'),
+ (6,2,3,'2023-07-05'),(7,2,3,'2023-07-06'),
+ (8,4,5,'2023-07-07'),(9,5,4,'2023-07-08'),(10,4,5,'2023-07-09'),(11,5,4,'2023-07-10'),
+ (12,6,7,'2023-07-11');
+
+DROP TABLE IF EXISTS exam_scores;
+CREATE TABLE exam_scores (
+  score_id     INTEGER PRIMARY KEY,
+  student_id   INTEGER NOT NULL,
+  student_name TEXT NOT NULL,
+  subject      TEXT NOT NULL,
+  marks        INTEGER NOT NULL
+);
+INSERT INTO exam_scores VALUES
+ (1,1,'Ravi','Physics',78),(2,1,'Ravi','Chemistry',78),(3,1,'Ravi','Maths',91),
+ (4,2,'Sneha','Physics',88),(5,2,'Sneha','Chemistry',92),(6,2,'Sneha','Maths',88),
+ (7,3,'Arjun','Physics',65),(8,3,'Arjun','Chemistry',70),(9,3,'Arjun','Maths',80),
+ (10,4,'Meera','Physics',90),(11,4,'Meera','Chemistry',90),(12,4,'Meera','Maths',90),
+ (13,5,'Kabir','Physics',55),(14,5,'Kabir','Chemistry',60);
+
+DROP TABLE IF EXISTS invoices;
+CREATE TABLE invoices (
+  invoice_id  INTEGER PRIMARY KEY,
+  branch      TEXT NOT NULL,
+  invoice_no  INTEGER NOT NULL,
+  issued_date TEXT NOT NULL,
+  amount      REAL NOT NULL
+);
+INSERT INTO invoices VALUES
+ (1,'North',1001,'2023-04-01',12000),(2,'North',1002,'2023-04-03',8400),
+ (3,'North',1004,'2023-04-08',15600),(4,'North',1005,'2023-04-11',7300),
+ (5,'North',1009,'2023-04-19',22000),(6,'North',1010,'2023-04-22',9100),
+ (7,'South',2001,'2023-04-02',5400),(8,'South',2002,'2023-04-06',6700),
+ (9,'South',2003,'2023-04-09',8800),
+ (10,'West',3001,'2023-04-04',14000),(11,'West',3003,'2023-04-12',11200),
+ (12,'West',3004,'2023-04-15',9800),(13,'West',3008,'2023-04-25',17500);
+
 `;
 
 export const TABLE_GROUPS = [
@@ -331,5 +459,10 @@ export const TABLE_GROUPS = [
     name: 'Product Analytics',
     tables: ['users', 'events'],
     blurb: 'Retention, DAU, funnel-style questions, self-referencing referrals.'
+  },
+  {
+    name: 'Interview Drills',
+    tables: ['seats', 'logins', 'daily_metrics', 'subscription_log', 'messages', 'exam_scores', 'invoices'],
+    blurb: 'Advanced-pattern practice — gaps and islands, streaks, sessionization, cohort retention, relational division and invoice-gap audits.'
   }
 ];

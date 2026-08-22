@@ -1,7 +1,11 @@
 # SQL Bee
 
-A browser-based SQL practice site — 60 interview-style questions with a real SQL engine,
+A browser-based SQL practice site — 85 interview-style questions with a real SQL engine,
 instant execution and automatic answer checking. Runs entirely offline on your machine.
+
+25 of them are an **advanced set** aimed at senior analyst and consulting screens
+(PwC, EY, Deloitte, Accenture, Genpact, Capgemini, EXL) and product-company rounds:
+gaps and islands, streaks, window frames, cohort retention, relational division and recursion.
 
 Made by [Jogesh Kumar Sharma](https://www.linkedin.com/in/jogeshkumarsharma).
 
@@ -119,7 +123,7 @@ Where a question has genuinely different solutions, the **Other ways** tab lists
 
 `sqlHubSelfTest()` in the browser console re-runs the whole grading harness: every reference
 solution and every listed alternative approach must grade Correct, and obviously wrong queries
-must be rejected. It currently runs **358 checks, all passing**. Run it after editing questions.
+must be rejected. It currently runs **496 checks, all passing**. Run it after editing questions.
 
 Progress, per-question drafts and submission history are saved to `localStorage`.
 
@@ -129,13 +133,51 @@ than a global schema panel and keeps the reference next to the prompt.
 
 ## Content
 
-60 questions across three datasets:
+85 questions across four datasets:
 
 | Dataset | Tables | Focus |
 |---|---|---|
 | HR / Company | `employees`, `departments`, `salaries_history` | self-joins, salary ranking, NULLs |
 | Sales / E-commerce | `customers`, `orders`, `order_items`, `products`, `payments` | revenue, multi-table joins, time series |
 | Product Analytics | `users`, `events` | DAU, retention, referral chains |
+| Interview Drills | `seats`, `logins`, `daily_metrics`, `subscription_log`, `messages`, `exam_scores`, `invoices` | gaps and islands, streaks, sessionization, cohorts, division, invoice-gap audits |
+
+### The advanced set (questions 61-85)
+
+Every one is rated Hard and carries its **own distinct topic label** — no pattern is
+covered twice, so working through all 25 means meeting 25 different techniques:
+
+| # | Question | Pattern |
+|---|---|---|
+| 61 | Blocks of three or more free seats | Gaps & Islands |
+| 62 | Longest daily login streak | Streaks (date arithmetic) |
+| 63 | Cities rising three days straight | Consecutive Trends |
+| 64 | Collapse a status log into ranges | Range Compaction |
+| 65 | Third highest distinct salary, safely | Ranking + NULL edge case |
+| 66 | Median salary per department | Median without PERCENTILE_CONT |
+| 67 | Top revenue quartile | NTILE buckets |
+| 68 | Paid more than every other dept average | Correlated subquery |
+| 69 | Seven-day rolling total | Rolling window frame |
+| 70 | Days that spiked above baseline | Frame excluding current row |
+| 71 | Full rep-by-region grid | CROSS JOIN + LEFT JOIN |
+| 72 | Three-day retention by cohort | Cohort analysis |
+| 73 | Users who went quiet | Anti-join |
+| 74 | Products bought together | Basket analysis |
+| 75 | Conversations that went both ways | Graph pairs |
+| 76 | Identical marks in two subjects | Self join |
+| 77 | Students sitting every subject | Relational division |
+| 78 | Web-only, mobile-only or both | Conditional aggregation |
+| 79 | Favourite category per customer | Arg-max with tie-break |
+| 80 | Second most recent login | Nth value + NULL edge case |
+| 81 | Gap between first and second order | Time between events |
+| 82 | Split activity into sessions | Sessionization |
+| 83 | Missing invoice numbers | Gap detection |
+| 84 | Depth of the reporting chain | Recursive CTE |
+| 85 | New versus returning orders | Cross-grain aggregation |
+
+The questions are original text written against our own dataset. Where a pattern is a
+well-known interview classic, only the *technique* is shared — the scenario, wording,
+schema and data are ours.
 
 Topics: SELECT basics, filtering, NULL handling, sorting/limiting, aggregation, GROUP BY, HAVING,
 all join types, self joins, anti-joins, subqueries, correlated subqueries, CASE WHEN and conditional
@@ -159,3 +201,7 @@ Append an object to `QUESTIONS` in `data/questions.js`:
 
 Set `orderMatters: true` only when the prompt asks for a specific sort order.
 To add or change data, edit `data/schema.js` — it is plain SQL executed at startup.
+
+While authoring, `sqlHubRun('SELECT ...')` in the browser console runs any query against
+the live database and returns `{columns, rows}`, which is the quickest way to check what a
+new solution actually produces. Then run `sqlHubSelfTest()` before committing.
